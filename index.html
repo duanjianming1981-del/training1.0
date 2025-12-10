@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>花生好车客户经理 在线测试题</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+      background: #f5f5f5;
+    }
+    h1,h2 {
+      text-align: center;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .question {
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    .question:last-child {
+      border-bottom: none;
+    }
+    .question-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .options label {
+      display: block;
+      margin: 4px 0;
+      cursor: pointer;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .btn-primary {
+      background: #ff7a00;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #eee;
+      color: #333;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .result {
+      font-size: 16px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-left: 6px;
+    }
+    .tag-correct {
+      background: #e6ffed;
+      color: #08875d;
+    }
+    .tag-wrong {
+      background: #ffecec;
+      color: #c53030;
+    }
+    .explanation {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #666;
+      background: #fafafa;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>花生好车客户经理 在线测试</h1>
+  <p style="text-align:center;font-size:13px;color:#666;">
+    根据《花生好车客户经理新人快速成长手册》整理<br/>
+    每次随机抽题，提交后显示得分与解析
+  </p>
+
+  <div class="card" id="configCard">
+    <h2 style="font-size:18px;margin-top:0;">测试设置</h2>
+    <label>
+      每次抽取题目数量：
+      <input type="number" id="questionCountInput" value="15" min="5" max="50" style="width:60px;margin-left:6px;">
+      （当前题库共有 <span id="totalCount"></span> 题）
+    </label>
+    <br/>
+    <button class="btn btn-primary" id="generateBtn">生成随机试卷</button>
+  </div>
+
+  <div class="card" id="quizCard" style="display:none;">
+    <h2 style="font-size:18px;margin-top:0;">本次试卷</h2>
+    <form id="quizForm"></form>
+    <button class="btn btn-primary" id="submitBtn">提交并评分</button>
+    <button class="btn btn-secondary" id="regenBtn" type="button">重新出一套随机试题</button>
+    <div id="resultArea" class="result"></div>
+  </div>
+
+  <div class="footer">
+    建议用于新员工入职考核 / 周测 / 月度考试<br/>
+    可自行在代码中扩展题库与解析
+  </div>
+
+  <script>
+    // ========== 题库部分：可以根据手册内容持续扩充 ==========
+    // 每道题：单选题，answer 是正确选项的索引（从 0 开始）
+    const questionBank = [
+      {
+        id: 1,
+        question: "花生好车成立时间是？",
+        options: ["2013年", "2015年6月", "2018年", "2020年"],
+        answer: 1,
+        explanation: "手册写明：花生好车成立于2015年6月，已运营近十年。"
+      },
+      {
+        id: 2,
+        question: "花生好车目前门店与城市覆盖的表述，哪一项最接近手册中的描述？",
+        options: [
+          "100+家门店，覆盖50余座城市",
+          "200+家门店，覆盖100余座城市",
+          "300+家连锁直营门店，覆盖200余座城市，服务用户超50万",
+          "500+家门店，覆盖300余座城市"
+        ],
+        answer: 2,
+        explanation: "手册中信息：全国拥有300+家连锁直营门店，覆盖200余座城市，累计服务超50万用户。"
+      },
+      {
+        id: 3,
+        question: "花生好车的核心业务描述，哪一项是正确的？",
+        options: [
+          "只做二手车买卖",
+          "主营汽车直租和新车直购，主打低首付购车，首付低至999元，并且包牌包税包保险",
+          "只做传统银行按揭贷款",
+          "只做网约车运营"
+        ],
+        answer: 1,
+        explanation: "手册原文：主营汽车直租和新车直购，主打低首付购车，首付低至999元，并且包牌包税包保险。"
+      },
+      {
+        id: 4,
+        question: "手册中提到的权威佐证包括：",
+        options: [
+          "入选央视广告品牌，获2亿元投资",
+          "荣登胡润《2024全球独角兽》榜单，地方国资已入局，获6.5亿元投资",
+          "获得联合国可持续发展奖项",
+          "入选中国500强企业排行榜"
+        ],
+        answer: 1,
+        explanation: "手册记载：荣登胡润《2024全球独角兽》榜单，地方国资已入局，获6.5亿元投资。"
+      },
+      {
+        id: 5,
+        question: "关于客户经理的微信昵称规范，下列哪一项符合手册要求？",
+        options: [
+          "使用随意网名即可，只要客户能加上",
+          "必须包含“花生好车官方旗舰店”字样",
+          "昵称使用真实姓名，可设为“销售顾问+姓名+电话”",
+          "必须用英文昵称，更显专业"
+        ],
+        answer: 2,
+        explanation: "手册要求：昵称使用真实姓名，可设为“销售顾问+姓名+电话”。"
+      },
+      {
+        id: 6,
+        question: "销售流程六大环节的正确顺序是？",
+        options: [
+          "获客 → 进件 → 跟进 → 签约 → 交车 → 客情维系",
+          "获客 → 跟进 → 进件 → 签约 → 交车 → 客情维系",
+          "跟进 → 获客 → 进件 → 交车 → 签约 → 客情维系",
+          "获客 → 签约 → 跟进 → 进件 → 交车 → 客情维系"
+        ],
+        answer: 1,
+        explanation: "手册明确六环节顺序：获客、跟进、进件、签约、交车、客情维系。"
+      },
+      {
+        id: 7,
+        question: "在“花生旺客APP”中，意向等级H级代表：",
+        options: [
+          "7天内购车",
+          "15天内购车",
+          "30天内购车",
+          "战败客户"
+        ],
+        answer: 0,
+        explanation: "手册说明：H级7天内购车，A级15天内，B级30天内，F级为战败。"
+      },
+      {
+        id: 8,
+        question: "“两证一卡”是指？",
+        options: [
+          "身份证、驾驶证、社保卡",
+          "身份证、驾驶证、银行卡",
+          "身份证、行驶证、银行卡",
+          "户口本、驾驶证、银行卡"
+        ],
+        answer: 1,
+        explanation: "手册中写明：进件阶段收集“两证一卡（身份证、驾驶证、银行卡）”。"
+      },
+      {
+        id: 9,
+        question: "首次接触沟通“五步法”中，以下哪一项不属于这五步？",
+        options: [
+          "寻线索",
+          "打招呼/建立信任",
+          "FAB黄金开场",
+          "直接报价砍价"
+        ],
+        answer: 3,
+        explanation: "五步为：寻线索、打招呼/建立信任、找话题/破冰、FAB黄金开场、问信息/转换业务，并不包括“直接报价砍价”。"
+      },
+      {
+        id: 10,
+        question: "以下哪一类客户，不在手册重点强调的“四类目标客户”之中？",
+        options: [
+          "存款较低但收入相对稳定（毕业生、大开支家庭）",
+          "收入较高但不够稳定（农民、个体户、短工）",
+          "手续无法提供、不满足银行条件（缺流水、社保等）",
+          "已经全款买车、只想换车体验一下的豪车客户"
+        ],
+        answer: 3,
+        explanation: "前面三类都是手册中列出的目标客户群体，第四类并非重点人群。"
+      },
+      {
+        id: 11,
+        question: "关于定金的安全性解释，下列哪一项符合手册建议的话术？",
+        options: [
+          "定金打到我个人账户方便操作，放心就行",
+          "定金必须一次性交足1万元，否则不给办",
+          "订金直接打入公司账户，审核不通过可申请原路返还",
+          "先收现金，后面再补录系统"
+        ],
+        answer: 2,
+        explanation: "手册强调：订金直接打入公司账户，审核结果不满意可申请原路返还。"
+      },
+      {
+        id: 12,
+        question: "关于“融资租赁”的说明，下列哪一项是正确的？",
+        options: [
+          "就是简单租车，车永远不可能变成自己的",
+          "是一种正规金融方式，实质就是分期购车，还款期满后车辆归个人所有",
+          "不受任何法律监管",
+          "只能企业客户使用，个人不能用"
+        ],
+        answer: 1,
+        explanation: "手册说明：融资租赁是正规金融方式，本质是分期购车，还款期满后车归个人所有。"
+      },
+      {
+        id: 13,
+        question: "网上有客户说“利息太高”，以下哪种回应更符合手册建议？",
+        options: [
+          "那就不要做了，反正车也不多",
+          "是高一点，我们公司就这样规定的",
+          "对比信用卡、微粒贷等平台，利息至少10%以上，我们这边已经低很多；而且您能获得购车资格本身就不容易",
+          "要不我帮您把利息抹掉"
+        ],
+        answer: 2,
+        explanation: "手册思路：对比其他网贷平台利息，强调相对低，并强调“获得购车资格本身不易”。"
+      },
+      {
+        id: 14,
+        question: "关于“公户”的说明，哪一项是正确的？",
+        options: [
+          "公户上牌就不能上路，只能展览",
+          "公户主要用于抵御风险，不影响上路、保养、维修、出险，享受权益相同，还款期满后会协助过户到个人名下",
+          "公户的车不能买保险",
+          "公户车辆必须每天在门店停放"
+        ],
+        answer: 1,
+        explanation: "手册原话：公户用于风险控制，不影响正常使用，还款期满由公司协助完成过户。"
+      },
+      {
+        id: 15,
+        question: "“凡掌控，必致电；凡致电，必掌控”主要强调的是？",
+        options: [
+          "多发朋友圈就好，不必打电话",
+          "只靠文字聊天就能搞定成交",
+          "关键决策和动作要尽量通过电话或语音沟通，掌控节奏与心理",
+          "客户想什么时候回就什么时候回，不要打扰"
+        ],
+        answer: 2,
+        explanation: "手册强调对话掌控：发微信是“上子弹”，拨打电话才是“开枪”，要通过通话掌控节奏。"
+      },
+      {
+        id: 16,
+        question: "关于“稀缺法则/活动逼单”，哪一句更符合手册建议？",
+        options: [
+          "我们活动长期都有，不急",
+          "什么时候来都行，价格都一样",
+          "门店还有3个减免首付的名额，今天能签就给您；平台后天有活动，这款车可以减免首付，先交订金占个名额",
+          "只要您想买，我随时帮您改价格"
+        ],
+        answer: 2,
+        explanation: "手册逼单话术：强调特批名额和时间窗口，制造稀缺与紧迫感。"
+      },
+      {
+        id: 17,
+        question: "以下哪款车在手册中被列为“紧凑型SUV”？",
+        options: [
+          "名爵5",
+          "奔腾B70",
+          "星途追风",
+          "瑞虎8"
+        ],
+        answer: 2,
+        explanation: "附件车型示例中：星途追风为紧凑型SUV。"
+      },
+      {
+        id: 18,
+        question: "以下关于“陡坡缓降”配置的作用，哪一项正确？",
+        options: [
+          "自动控制刹车，帮助车辆安全通过陡坡",
+          "提高发动机马力",
+          "自动打开天窗",
+          "减少油耗20%"
+        ],
+        answer: 0,
+        explanation: "手册说明：陡坡缓降是下坡行驶的自动控制系统，自动控制车轮制动，安全通过陡坡。"
+      },
+      {
+        id: 19,
+        question: "手册中提到“提升沉没成本”是为了？",
+        options: [
+          "让客户多交点钱",
+          "让客户在购车过程中投入更多时间和精力，从而更容易成交",
+          "只关注已经成交的客户",
+          "增加内部运营成本"
+        ],
+        answer: 1,
+        explanation: "策略：拉着客户做有效互动，客户消耗越多时间精力，越容易成交。"
+      },
+      {
+        id: 20,
+        question: "关于“客情维系”的正确理解是？",
+        options: [
+          "交车后就结束，不必再联系",
+          "只在客户投诉时联系",
+          "保持长期联系，生日祝福、节日问候、天气提醒、还款温馨提示等，争取转介绍",
+          "只要在群里发广告就行"
+        ],
+        answer: 2,
+        explanation: "手册明确：客情维系包括定期关怀与提醒，为后续转介绍打基础。"
+      },
+
+      // ===== 下面是新增题目：21-60 =====
+      {
+        id: 21,
+        question: "本手册被定义为哪一类培训工具？",
+        options: [
+          "理论学习读本",
+          "应试考试题库",
+          "“即战力”培训工具，强调上手就能用",
+          "行政管理制度汇编"
+        ],
+        answer: 2,
+        explanation: "封面说明：本手册是为新入职客户经理设计的“即战力”培训工具，强调实战可用。"
+      },
+      {
+        id: 22,
+        question: "第1阶“基础认知与首次接触”的核心目标是什么？",
+        options: [
+          "掌握所有车型技术细节",
+          "完成从获客到转介绍的全流程实战",
+          "掌握基础规范和工具，能够进行合格的首次客户接触",
+          "学习公司财务报表"
+        ],
+        answer: 2,
+        explanation: "第1阶目标：掌握基础规范和工具，能完成合格的首次接触。"
+      },
+      {
+        id: 23,
+        question: "关于仪容仪表，下列哪一项符合手册要求？",
+        options: [
+          "穿拖鞋短裤，只要自己舒服就行",
+          "穿着正装或统一工装，佩戴工牌，保持妆容得体",
+          "只要线上沟通，不需要注意穿着",
+          "可以穿带有夸张图案的T恤凸显个性"
+        ],
+        answer: 1,
+        explanation: "手册要求：穿着正装或统一工作装，佩戴工牌，保持妆容得体。"
+      },
+      {
+        id: 24,
+        question: "关于微信头像与背景图，哪种组合更符合规范？",
+        options: [
+          "动漫头像 + 旅游风景背景",
+          "卡通头像 + 美食背景",
+          "职业或真人照片头像 + 背景图体现汽车销售元素（展车、门店等）",
+          "随便一张表情包 + 空白背景"
+        ],
+        answer: 2,
+        explanation: "手册明确：头像使用职业或真人照片，背景图体现汽车销售元素。"
+      },
+      {
+        id: 25,
+        question: "在微信沟通行为上，哪一项是明确禁止的？",
+        options: [
+          "及时回复、保持耐心",
+          "使用恰当语气，避免情绪化",
+          "辱骂或讽刺客户，发泄情绪",
+          "主动提醒客户活动信息"
+        ],
+        answer: 2,
+        explanation: "手册明确指出：严禁辱骂客户，以免损害公司形象。"
+      },
+      {
+        id: 26,
+        question: "在花生旺客APP中新增线索时，以下哪项不是必填信息？",
+        options: [
+          "客户手机号",
+          "意向等级（H/A/B/C/F）",
+          "来源渠道",
+          "客户户口所在地的详细地址"
+        ],
+        answer: 3,
+        explanation: "必填项包括手机号、意向等级、来源渠道和客户姓名，并未要求详细户籍地址。"
+      },
+      {
+        id: 27,
+        question: "意向等级划分中，F级代表什么？",
+        options: [
+          "7天内购车",
+          "30天内购车",
+          "战败客户，不再继续跟进",
+          "已签约客户"
+        ],
+        answer: 2,
+        explanation: "手册定义：F级为战败客户。"
+      },
+      {
+        id: 28,
+        question: "沟通记录在花生旺客APP中的字数要求是？",
+        options: [
+          "至少1个字",
+          "至少3个字",
+          "至少5个字符，并选择沟通方式、意向等级和下次沟通时间",
+          "没有字数要求"
+        ],
+        answer: 2,
+        explanation: "手册明确：沟通记录不少于5个字符，并需选择沟通方式、意向等级和下次沟通时间。"
+      },
+      {
+        id: 29,
+        question: "预审查询的操作方法是？",
+        options: [
+          "让客户自己去银行大堂问",
+          "输入客户手机号，在系统中查看预审结果",
+          "通过微信聊天大致猜一猜",
+          "只看客户穿着判断"
+        ],
+        answer: 1,
+        explanation: "手册写明：在预审查询中，输入手机号即可查看客户预审结果。"
+      },
+      {
+        id: 30,
+        question: "关于订金收取的金额和方式，哪一项正确？",
+        options: [
+          "金额固定为1000元，打入销售个人账户",
+          "金额分为500元至5999元六档，订金直接打入公司账户",
+          "金额随意收取，现金即可",
+          "只收100元象征性订金，不需要系统记录"
+        ],
+        answer: 1,
+        explanation: "手册中说明：订金金额分为500元至5999元六档，直接进入公司账户。"
+      },
+      {
+        id: 31,
+        question: "首次接触沟通“五步法”中，第一步“寻线索”主要通过什么方式完成？",
+        options: [
+          "只在门店等客流上门",
+          "通过抖音、微信朋友圈等平台收集客户的工作、生活和购车兴趣信息",
+          "只通过银行推荐客户",
+          "让朋友介绍，不做线上动作"
+        ],
+        answer: 1,
+        explanation: "手册写明：通过抖音、朋友圈等平台收集客户线索。"
+      },
+      {
+        id: 32,
+        question: "针对“存款较低但收入相对稳定”的毕业生、大开支家庭等，手册将其归为哪一类群体？",
+        options: [
+          "群体一",
+          "群体二",
+          "群体三",
+          "群体四"
+        ],
+        answer: 0,
+        explanation: "手册中：群体一为存款较低但收入相对稳定者，如毕业生、大开支家庭。"
+      },
+      {
+        id: 33,
+        question: "以下哪类人群更接近群体二的描述？",
+        options: [
+          "公务员",
+          "大型国企员工",
+          "农民、个体户、短工等收入较高但不够稳定者",
+          "已退休无收入者"
+        ],
+        answer: 2,
+        explanation: "手册中群体二：收入较高，但不够稳定者，如农民、个体户、短工。"
+      },
+      {
+        id: 34,
+        question: "群体三的典型特征是？",
+        options: [
+          "缺乏银行流水、社保等，无法提供传统金融机构要求的材料",
+          "没有身份证",
+          "完全没有收入",
+          "只想买二手车"
+        ],
+        answer: 0,
+        explanation: "群体三：手续无法提供，不满足银行条件者（缺少流水、社保等）。"
+      },
+      {
+        id: 35,
+        question: "群体四（逾期人员或小白用户、征信差有当前执行及呆账等）的购车特点是？",
+        options: [
+          "在其他地方很难有分期资格",
+          "可以在任何银行轻松获批",
+          "只能全款购车",
+          "只适合买豪车"
+        ],
+        answer: 0,
+        explanation: "手册指出：群体四在其他地方很难有分期资格。"
+      },
+      {
+        id: 36,
+        question: "在“白银级信任体系构建”中，从公司维度建立信任的做法是？",
+        options: [
+          "让客户自己百度一下",
+          "发送门店定位和视频、中⼼库视频，让客户远程参观",
+          "只发一张名片即可",
+          "不介绍公司，只聊价格"
+        ],
+        answer: 1,
+        explanation: "手册建议：通过发送门店定位、门店/库房视频等，证明门店和展车真实存在。"
+      },
+      {
+        id: 37,
+        question: "利用“从众心理”建立信任的做法是？",
+        options: [
+          "只发价格表",
+          "发送过往客户成交照片/视频，说明很多客户了解后都选择了成交",
+          "只告诉客户你是金牌销售",
+          "转发大量负面评价让客户自己判断"
+        ],
+        answer: 1,
+        explanation: "手册中：发送成交照片/视频，强调很多客户起初也怀疑，了解后还是选择成交。"
+      },
+      {
+        id: 38,
+        question: "在“钱（订金）”维度的信任建设中，关键要点是？",
+        options: [
+          "强调定金一旦交付概不退还",
+          "定金可以打到销售个人账户更方便",
+          "明确订金进入公司账户，审核不通过或不满意可按规则申请退款",
+          "不必解释定金用途"
+        ],
+        answer: 2,
+        explanation: "手册反复强调：订金打入公司账户，有明确退款规则。"
+      },
+      {
+        id: 39,
+        question: "手册中提到“通过提问将话题从寒暄转换到业务”，以下哪一个问题更符合这一目的？",
+        options: [
+          "您今天吃饭了吗？",
+          "最近天气不错吧？",
+          "这款车主要是您开还是家人开？",
+          "您平时喜欢看什么综艺？"
+        ],
+        answer: 2,
+        explanation: "示例话术：如“这款车主要是您开还是家人开？”属于业务相关问题。"
+      },
+      {
+        id: 40,
+        question: "在“公式介绍法”中，哪一项内容不属于推荐的介绍要素？",
+        options: [
+          "车型级别及主要优势",
+          "发动机类型及优点",
+          "变速箱类型及优点，底盘悬挂类型及效果",
+          "销售员个人情感经历"
+        ],
+        answer: 3,
+        explanation: "公式介绍法强调的是车型、动力、变速箱、悬挂、配置、安全等，与销售个人感情无关。"
+      },
+      {
+        id: 41,
+        question: "当客户纠结配置或品牌时，手册建议的应对策略之一是？",
+        options: [
+          "建议客户再等等明年新款",
+          "不断降价让客户赶紧定",
+          "突出核心需求，用“够用、适用”替代“全都要”，帮助客户做选择",
+          "让客户去4S店多看几家再说"
+        ],
+        answer: 2,
+        explanation: "手册“车型转化要点”：帮助客户聚焦核心，避免“什么都想要”导致决策困难。"
+      },
+      {
+        id: 42,
+        question: "针对“你们销售的是库存车吧？”的异议，合适的话术是？",
+        options: [
+          "是库存车，所以更便宜",
+          "都是最新批次从厂家采购的，到库后很快就销售完了，如介意可推荐最新款",
+          "确实是压了很多年没卖出去的车",
+          "先不回答，转移话题"
+        ],
+        answer: 1,
+        explanation: "手册话术：强调车辆为最新批次，周转快，如客户在意可以推荐最新款。"
+      },
+      {
+        id: 43,
+        question: "针对“网上说这款车不好”的异议，手册建议的回应是？",
+        options: [
+          "网上说的肯定都是真的",
+          "那就不要买了",
+          "任何车网上评价都褒贬不一，奔驰、宝马也一样；关键是自己是否喜欢、是否适合",
+          "让客户去网上继续搜"
+        ],
+        answer: 2,
+        explanation: "手册中：强调所有车都有褒贬不一的评价，关键看自身需求和喜好。"
+      },
+      {
+        id: 44,
+        question: "针对“外面有零首付方案”的比较型异议，哪一句更符合手册建议？",
+        options: [
+          "我们也可以零首付，比他们更便宜",
+          "零首付多是低价引流，要么门槛高做不了，要么额外很多费用；我们999元起步，方案真实、价格透明",
+          "你去那边办吧",
+          "我们价格最贵，但服务好"
+        ],
+        answer: 1,
+        explanation: "手册提供的典型话术：讲清零首付的真实门槛和隐性成本，再突出自家透明靠谱。"
+      },
+      {
+        id: 45,
+        question: "在“黄金级对话掌控”中，手册用哪种比喻说明“电话沟通”的重要性？",
+        options: [
+          "发微信是开枪，电话是子弹",
+          "发微信是散步，电话是奔跑",
+          "发微信是上子弹，电话才是开枪",
+          "发微信是吃饭，电话是喝水"
+        ],
+        answer: 2,
+        explanation: "原话类似：发微信是上子弹，拨打电话才是开枪，强调电话对成交的关键作用。"
+      },
+      {
+        id: 46,
+        question: "在销售转化逻辑中，“降低信心”阶段的核心目的是？",
+        options: [
+          "打击客户让他放弃购车",
+          "让客户觉得自己一定不可能通过审核",
+          "让客户意识到征信严格、机会不多，增强珍惜感",
+          "转而推荐其它产品"
+        ],
+        answer: 2,
+        explanation: "阶段中强调：国家对征信卡得严，下次不一定能通过，让客户意识到机会的重要性。"
+      },
+      {
+        id: 47,
+        question: "在“恢复信心”阶段，手册推荐的做法是？",
+        options: [
+          "直接说肯定能通过，不用担心",
+          "讲述类似客户成功通过的案例，说明仍有机会",
+          "不再提征信问题",
+          "告诉客户运气好就行"
+        ],
+        answer: 1,
+        explanation: "通过讲故事（类似客户的成功案例）来恢复客户信心。"
+      },
+      {
+        id: 48,
+        question: "在“试邀请”环节，下列哪句属于手册推荐话术？",
+        options: [
+          "你现在先别给资料，考虑清楚再说",
+          "赶快给我一张身份证，我帮您具体测一下，测完您心里也有个底",
+          "先打钱，资料以后再说",
+          "你先自己去网上查一下"
+        ],
+        answer: 1,
+        explanation: "手册示例话术：以“帮忙测一下”为由，推动客户迈出下一步。"
+      },
+      {
+        id: 49,
+        question: "关于订金用途的正确解释是？",
+        options: [
+          "只是象征性收一点，不起实际作用",
+          "收了订金就不能退款，与审核无关",
+          "交订金可以申请信审、预占车辆名额、锁定活动权益，加快交付",
+          "只表示客户态度，不影响后续流程"
+        ],
+        answer: 2,
+        explanation: "手册说明：交订金可以申请信审、预占车辆和活动名额，更快安排交付。"
+      },
+      {
+        id: 50,
+        question: "在“交换逼单/个人赠品”策略中，哪一句表达更贴近手册建议？",
+        options: [
+          "你今天不签约就拉黑你",
+          "如果您今天能签约，我帮您再申请一个减免首付的活动，或者我个人掏钱送您一份礼品",
+          "不签约就涨价",
+          "只要您今天来店，我就送礼品"
+        ],
+        answer: 1,
+        explanation: "手册建议：用活动名额或个人小礼品，作为客户当日签约的交换条件。"
+      },
+      {
+        id: 51,
+        question: "针对“不回复”的客户，哪一句更符合手册推荐的“重启沟通”话术？",
+        options: [
+          "你怎么不回信息，是不想买了吗？",
+          "您要是不想买就直说",
+          "您最近还在看车吗？我刚签了几个征信不太好的客户，我再帮您看一下？",
+          "直接发一张价目表过去"
+        ],
+        answer: 2,
+        explanation: "手册示例：用最近成交案例切入，既展现专业也降低对方心理压力。"
+      },
+      {
+        id: 52,
+        question: "针对“要跟家人商量”的情况，推荐的做法是？",
+        options: [
+          "直接说：不用商量了，赶紧定",
+          "让客户自己商量，之后再说",
+          "询问主要和谁商量，记录不同家人的侧重点，便于后续沟通",
+          "表示理解，但不再跟进"
+        ],
+        answer: 2,
+        explanation: "手册中提到：了解家人角色和关注点，为下一轮沟通做准备。"
+      },
+      {
+        id: 53,
+        question: "在“终身客情与转介绍”中，以下哪项不是推荐的客情维系方式？",
+        options: [
+          "生日祝福、节日问候",
+          "天气变化、用车安全提醒",
+          "还款日前温馨提示",
+          "只在有活动时群发广告信息"
+        ],
+        answer: 3,
+        explanation: "手册强调长期、有温度的维系，而不是单纯活动时群发广告。"
+      },
+      {
+        id: 54,
+        question: "关于“成交故事储备”，哪种故事方向更符合手册建议？",
+        options: [
+          "只讲自己业绩多高",
+          "线上买车靠谱、征信差也通过、还款期满顺利过户等真实案例",
+          "讲别的品牌的失败案例",
+          "讲与购车无关的个人生活故事"
+        ],
+        answer: 1,
+        explanation: "手册推荐：储备并熟练讲述线上购车、征信不佳仍获批、还款期满过户等成功故事。"
+      },
+      {
+        id: 55,
+        question: "关于“无钥匙进入”配置的作用，以下说法正确的是？",
+        options: [
+          "提升发动机功率",
+          "减少油耗",
+          "无需掏出钥匙即可进入车辆，方便快捷",
+          "自动打开发动机舱盖"
+        ],
+        answer: 2,
+        explanation: "配置说明：无须掏钥匙即可进入车辆，提升日常使用便利性。"
+      },
+      {
+        id: 56,
+        question: "关于“自动驻车”配置的说明，哪一项正确？",
+        options: [
+          "自动帮你打转向灯",
+          "相当于替你踩住刹车，抬起刹车仍能保持驻车制动力，适合频繁起步停车",
+          "自动切换车道",
+          "自动开启雨刷"
+        ],
+        answer: 1,
+        explanation: "手册说明：自动驻车特别适合城市拥堵路况下的频繁起步停车。"
+      },
+      {
+        id: 57,
+        question: "胎压监测系统的主要作用是？",
+        options: [
+          "增加车内氛围灯效果",
+          "实时监测轮胎气压，防止行驶中爆胎",
+          "自动调节座椅加热",
+          "提升导航准确度"
+        ],
+        answer: 1,
+        explanation: "配置表：胎压监测实时监测轮胎气压，防止行驶中爆胎。"
+      },
+      {
+        id: 58,
+        question: "后视镜加热功能主要适用于哪种场景？",
+        options: [
+          "高速行驶时提升转向灵敏度",
+          "雨雪雾天气，用电热丝消除雾气",
+          "炎热天气自动降温",
+          "夜间自动开启远光灯"
+        ],
+        answer: 1,
+        explanation: "配置表：后视镜加热通过电热丝消除雾气，适合雨雪雾天使用。"
+      },
+      {
+        id: 59,
+        question: "下列哪一项最能概括“第3阶：专业知识深化与异议处理”的目标？",
+        options: [
+          "学会如何做财务报表",
+          "熟练掌握公司主销车型知识，并能专业、高效处理客户各类异议",
+          "只负责获客，不负责成交",
+          "学习公司行政制度"
+        ],
+        answer: 1,
+        explanation: "第3阶目标：专业知识与异议处理，支撑成交转化。"
+      },
+      {
+        id: 60,
+        question: "“第4阶：高效转化与业绩倍增”的重点不包括以下哪一项？",
+        options: [
+          "黄金级对话掌控与心理战",
+          "终身客情与转介绍",
+          "不断优化逼单策略",
+          "只做每天简单打卡，不看业绩"
+        ],
+        answer: 3,
+        explanation: "第4阶旨在通过对话掌控、逼单技巧、客情与转介绍实现业绩倍增，绝不只是打卡。"
+      }
+    ];
+
+    // ========== 逻辑部分：随机出题、渲染、判分 ==========
+    let currentQuestions = [];
+
+    const totalCountSpan = document.getElementById("totalCount");
+    const questionCountInput = document.getElementById("questionCountInput");
+    const generateBtn = document.getElementById("generateBtn");
+    const quizCard = document.getElementById("quizCard");
+    const quizForm = document.getElementById("quizForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const regenBtn = document.getElementById("regenBtn");
+    const resultArea = document.getElementById("resultArea");
+
+    totalCountSpan.textContent = questionBank.length;
+
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function generateQuiz() {
+      const count = Math.min(
+        Math.max(parseInt(questionCountInput.value || "15", 10), 5),
+        questionBank.length
+      );
+      currentQuestions = shuffle(questionBank).slice(0, count);
+      renderQuiz();
+      resultArea.textContent = "";
+    }
+
+    function renderQuiz() {
+      quizForm.innerHTML = "";
+      currentQuestions.forEach((q, index) => {
+        const qDiv = document.createElement("div");
+        qDiv.className = "question";
+        qDiv.dataset.qindex = index;
+
+        const title = document.createElement("div");
+        title.className = "question-title";
+        title.textContent = (index + 1) + "．" + q.question;
+        qDiv.appendChild(title);
+
+        const optionsDiv = document.createElement("div");
+        optionsDiv.className = "options";
+
+        q.options.forEach((opt, optIndex) => {
+          const id = `q${index}_opt${optIndex}`;
+          const label = document.createElement("label");
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "q" + index;
+          input.value = optIndex;
+          input.id = id;
+          label.htmlFor = id;
+          label.appendChild(input);
+          const textNode = document.createTextNode(" " + opt);
+          label.appendChild(textNode);
+          optionsDiv.appendChild(label);
+        });
+
+        qDiv.appendChild(optionsDiv);
+        quizForm.appendChild(qDiv);
+      });
+
+      quizCard.style.display = "block";
+    }
+
+    function gradeQuiz(event) {
+      event.preventDefault();
+      let correctCount = 0;
+
+      const questionDivs = quizForm.querySelectorAll(".question");
+      questionDivs.forEach((qDiv, index) => {
+        const q = currentQuestions[index];
+        const selected = quizForm.querySelector(`input[name="q${index}"]:checked`);
+        const existingTag = qDiv.querySelector(".tag");
+        if (existingTag) existingTag.remove();
+        const existingExp = qDiv.querySelector(".explanation");
+        if (existingExp) existingExp.remove();
+
+        const tag = document.createElement("span");
+        tag.className = "tag";
+
+        if (selected && parseInt(selected.value, 10) === q.answer) {
+          correctCount++;
+          tag.classList.add("tag-correct");
+          tag.textContent = "✔ 回答正确";
+        } else {
+          tag.classList.add("tag-wrong");
+          const correctText = q.options[q.answer];
+          tag.textContent = "✘ 回答错误，正确答案：" + correctText;
+        }
+
+        qDiv.querySelector(".question-title").appendChild(tag);
+
+        const expDiv = document.createElement("div");
+        expDiv.className = "explanation";
+        expDiv.textContent = "解析：" + q.explanation;
+        qDiv.appendChild(expDiv);
+      });
+
+      const total = currentQuestions.length;
+      const score = Math.round((correctCount / total) * 100);
+      let level = "";
+      if (score >= 90) level = "（A级：非常优秀，可以带新人了）";
+      else if (score >= 80) level = "（B级：表现不错，继续熟练话术）";
+      else if (score >= 60) level = "（C级：达到基本要求，需要多练）";
+      else level = "（D级：建议重新系统学习手册内容）";
+
+      resultArea.textContent = `本次得分：${score}分（共${total}题，答对${correctCount}题）` + level;
+    }
+
+    generateBtn.addEventListener("click", generateQuiz);
+    regenBtn.addEventListener("click", generateQuiz);
+    submitBtn.addEventListener("click", gradeQuiz);
+  </script>
+</body>
+</html>
